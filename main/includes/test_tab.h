@@ -1,6 +1,8 @@
 #pragma once
 
-#define MAZE_TAB_NAME "MAZE"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#define TEST_TAB_NAME "TEST"
 
 TaskHandle_t TestTab_Handle;
 

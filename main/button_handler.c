@@ -13,7 +13,6 @@
 #include "core2forAWS.h"
 
 #include "button_handler.h"
-#include "maze_tab.h"
 
 static const char *TAG = "BUTTON_HANDLER";
 
@@ -32,7 +31,6 @@ void button_handler_task(void *pvParameters)
         if (Button_WasPressed(button_right))
         {
             xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
-            down_recal();
             static const char *btns[] = {"Close", ""};
 
             lv_obj_t *mbox1 = lv_msgbox_create(lv_scr_act(), NULL);
@@ -61,7 +59,6 @@ void button_handler_task(void *pvParameters)
         {
             ESP_LOGI(TAG, "middle button pressed");
             ESP_LOGI(TAG, "left button pressed");
-            reset_north();
             xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
             static const char *btns[] = {"Close", ""};
 

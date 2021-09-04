@@ -28,7 +28,7 @@ void display_game_tab(lv_obj_t *tv)
     lv_cont_set_layout(cont, LV_LAYOUT_COLUMN_MID);
 
     lv_obj_t *label = lv_label_create(cont, NULL);
-    lv_label_set_text_fmt(label, "MOTIVE - MAZE");
+    lv_label_set_text_fmt(label, "QQ - QuizQuest");
     lv_obj_align(label, NULL, LV_ALIGN_CENTER, 0, 0);
     lv_obj_set_size(label, LV_VER_RES, LV_HOR_RES - 10);
 
@@ -37,13 +37,13 @@ void display_game_tab(lv_obj_t *tv)
     lv_table_set_row_cnt(table, 3);
     lv_obj_align(table, NULL, LV_ALIGN_CENTER, 0, 0);
 
-    lv_table_set_cell_value(table, 0, 0, "Maze");
+    lv_table_set_cell_value(table, 0, 0, "Highscore");
     lv_table_set_cell_value(table, 1, 0, "Level");
     lv_table_set_cell_value(table, 2, 0, "Name");
 
-    lv_table_set_cell_value_fmt(table, 0, 1, "CrazeMaze");
-    lv_table_set_cell_value_fmt(table, 1, 1, "7");
-    lv_table_set_cell_value_fmt(table, 2, 1, "Stantonious");
+    lv_table_set_cell_value_fmt(table, 0, 1, "Start");
+    lv_table_set_cell_value_fmt(table, 1, 1, "2");
+    lv_table_set_cell_value_fmt(table, 2, 1, "cyxl");
 
     xSemaphoreGive(xGuiSemaphore);
 }

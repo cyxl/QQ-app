@@ -30,7 +30,7 @@ static void tab_event_cb(lv_obj_t *slider, lv_event_t event);
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "\n***************************************************\n MOTIVE MAZE \n***************************************************");
+    ESP_LOGI(TAG, "\n***************************************************\n Quiz Quest \n***************************************************");
 
     // Initialize NVS for Wi-Fi stack to store data
     //TODO esp_err_t ret = nvs_flash_init();
@@ -112,16 +112,11 @@ static void tab_event_cb(lv_obj_t *slider, lv_event_t event)
         const char *tab_name = ext->tab_name_ptr[lv_tabview_get_tab_act(tab_view)];
         ESP_LOGI(TAG, "Current Active Tab: %s\n", tab_name);
 
-        vTaskSuspend(MAZE_handle);
-        vTaskSuspend(TILT_MAZE_handle);
+        vTaskSuspend(TestTab_Handle);
 
-        if (strcmp(tab_name, MAZE_TAB_NAME) == 0)
+        if (strcmp(tab_name, TEST_TAB_NAME) == 0)
         {
-            vTaskResume(MAZE_handle);
-        }
-        else if (strcmp(tab_name, TILT_MAZE_TAB_NAME) == 0)
-        {
-            vTaskResume(TILT_MAZE_handle);
+            vTaskResume(TestTab_Handle);
         }
     }
 }

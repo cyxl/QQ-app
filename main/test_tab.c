@@ -1,9 +1,24 @@
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/semphr.h"
+
+#include "esp_log.h"
+
+#include "core2forAWS.h"
+
+
 #include "test_tab.h"
 
 void display_test_tab(lv_obj_t *tv)
 {
     xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
-    lv_obj_t *test_tab = lv_tabview_add_tab(tv, GAME_TAB_NAME); // Create a tab
+    lv_obj_t *test_tab = lv_tabview_add_tab(tv, TEST_TAB_NAME); // Create a tab
     lv_obj_t *cont;
 
     cont = lv_cont_create(test_tab, NULL);
