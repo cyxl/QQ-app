@@ -14,8 +14,11 @@
 
 #include "quiz_tab.h"
 
-#define QUIZ_PLOT_WIDTH 280
+#define QUIZ_PLOT_WIDTH 280 
 #define QUIZ_PLOT_HEIGHT 200
+
+LV_IMG_DECLARE(down);
+LV_IMG_DECLARE(squat);
 
 static lv_color_t *cbuf;
 void rebuild_quiz_canvas(lv_obj_t* canvas)
@@ -24,8 +27,9 @@ void rebuild_quiz_canvas(lv_obj_t* canvas)
     lv_draw_label_dsc_init(&label_desc);
     label_desc.font = &lv_font_montserrat_12;
     xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
-    lv_canvas_fill_bg(canvas, LV_COLOR_SILVER, LV_OPA_COVER);
+    lv_canvas_fill_bg(canvas, LV_COLOR_WHITE, LV_OPA_COVER);
 
+    //Example of text
     lv_canvas_draw_text(canvas,1,1,300,&label_desc,"HELLO WORLD this is a very long line with some very long text to see what it is going to look like with a long questions????",LV_LABEL_ALIGN_LEFT);
     xSemaphoreGive(xGuiSemaphore);
 }
@@ -40,7 +44,19 @@ void display_quiz_tab(lv_obj_t *tv)
     lv_canvas_set_buffer(canvas, cbuf, QUIZ_PLOT_WIDTH, QUIZ_PLOT_HEIGHT, LV_IMG_CF_TRUE_COLOR);
 
     lv_obj_align(canvas, NULL, LV_ALIGN_IN_TOP_LEFT, 5, 5);
-    lv_canvas_fill_bg(canvas, LV_COLOR_SILVER, LV_OPA_COVER);
+    lv_canvas_fill_bg(canvas, LV_COLOR_WHITE, LV_OPA_COVER);
+
+
+    //Example of adding an image
+    lv_obj_t * img1 = lv_img_create(canvas, NULL);
+    lv_img_set_src(img1, &down);
+    lv_obj_align(img1, NULL, LV_ALIGN_CENTER, 0, -20);
+
+    lv_obj_t * img_squat = lv_img_create(canvas, NULL);
+    lv_img_set_src(img_squat, &squat);
+    lv_obj_align(img_squat, NULL, LV_ALIGN_CENTER, 25, -20);
+    //End Example
+    
     xSemaphoreGive(xGuiSemaphore);
 
 
