@@ -3,5 +3,5 @@
 cmake_minimum_required(VERSION 3.5)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-list(APPEND EXTRA_COMPONENT_DIRS "../components" "./components")
+list(APPEND EXTRA_COMPONENT_DIRS "../components" "../mot-components" "./components")
 project(QQ-app VERSION 1.0.0)

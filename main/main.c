@@ -18,6 +18,7 @@
 #include "core2forAWS.h"
 #include "game_tab.h"
 #include "test_tab.h"
+#include "quiz_tab.h"
 #include "button_handler.h"
 #include "app_wifi.h"
 
@@ -100,7 +101,8 @@ static void ui_start(void)
     xSemaphoreGive(xGuiSemaphore);
 
     display_game_tab(tab_view);
-    display_test_tab(tab_view);
+    //display_test_tab(tab_view);
+    display_quiz_tab(tab_view);
     init_button_handlers();
 }
 
@@ -112,7 +114,7 @@ static void tab_event_cb(lv_obj_t *slider, lv_event_t event)
         const char *tab_name = ext->tab_name_ptr[lv_tabview_get_tab_act(tab_view)];
         ESP_LOGI(TAG, "Current Active Tab: %s\n", tab_name);
 
-        vTaskSuspend(TestTab_Handle);
+        //vTaskSuspend(TestTab_Handle);
 
         if (strcmp(tab_name, TEST_TAB_NAME) == 0)
         {
