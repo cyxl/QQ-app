@@ -13,7 +13,7 @@
 #define LV_ATTRIBUTE_IMG_UP
 #endif
 
-const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_UP uint8_t up_map[] = {
+const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_UP uint8_t b_up_map[] = {
 #if LV_COLOR_DEPTH == 1 || LV_COLOR_DEPTH == 8
   /*Pixel format: Blue: 2 bit, Green: 3 bit, Red: 3 bit*/
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
@@ -108,12 +108,12 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_UP uint8_
 #endif
 };
 
-const lv_img_dsc_t up = {
+const lv_img_dsc_t b_up = {
   .header.always_zero = 0,
   .header.w = 20,
   .header.h = 20,
   .data_size = 400 * LV_COLOR_SIZE / 8,
   .header.cf = LV_IMG_CF_TRUE_COLOR,
-  .data = up_map,
+  .data = b_up_map,
 };
 

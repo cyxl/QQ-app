@@ -13,7 +13,7 @@
 #define LV_ATTRIBUTE_IMG_JUMP
 #endif
 
-const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_JUMP uint8_t jump_map[] = {
+const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_JUMP uint8_t b_jump_map[] = {
 #if LV_COLOR_DEPTH == 1 || LV_COLOR_DEPTH == 8
   /*Pixel format: Blue: 2 bit, Green: 3 bit, Red: 3 bit*/
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xdb, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
@@ -108,12 +108,12 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_JUMP uint
 #endif
 };
 
-const lv_img_dsc_t jump = {
+const lv_img_dsc_t b_jump = {
   .header.always_zero = 0,
   .header.w = 20,
   .header.h = 20,
   .data_size = 400 * LV_COLOR_SIZE / 8,
   .header.cf = LV_IMG_CF_TRUE_COLOR,
-  .data = jump_map,
+  .data = b_jump_map,
 };
 

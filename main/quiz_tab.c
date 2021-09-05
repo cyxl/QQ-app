@@ -17,8 +17,8 @@
 #define QUIZ_PLOT_WIDTH 280 
 #define QUIZ_PLOT_HEIGHT 200
 
-LV_IMG_DECLARE(down);
-LV_IMG_DECLARE(squat);
+LV_IMG_DECLARE(a_squat);
+LV_IMG_DECLARE(b_up);
 
 static lv_color_t *cbuf;
 void rebuild_quiz_canvas(lv_obj_t* canvas)
@@ -48,13 +48,13 @@ void display_quiz_tab(lv_obj_t *tv)
 
 
     //Example of adding an image
-    lv_obj_t * img1 = lv_img_create(canvas, NULL);
-    lv_img_set_src(img1, &down);
-    lv_obj_align(img1, NULL, LV_ALIGN_CENTER, 0, -20);
+    lv_obj_t * img_a_squat = lv_img_create(canvas, NULL);
+    lv_img_set_src(img_a_squat, &a_squat);
+    lv_obj_align(img_a_squat, NULL, LV_ALIGN_CENTER, 25, -20);
 
-    lv_obj_t * img_squat = lv_img_create(canvas, NULL);
-    lv_img_set_src(img_squat, &squat);
-    lv_obj_align(img_squat, NULL, LV_ALIGN_CENTER, 25, -20);
+    lv_obj_t * img_b_up = lv_img_create(canvas, NULL);
+    lv_img_set_src(img_b_up, &b_up);
+    lv_obj_align(img_b_up, NULL, LV_ALIGN_CENTER, 50, -20);
     //End Example
     
     xSemaphoreGive(xGuiSemaphore);

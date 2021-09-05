@@ -13,7 +13,7 @@
 #define LV_ATTRIBUTE_IMG_RIGHT
 #endif
 
-const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_RIGHT uint8_t right_map[] = {
+const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_RIGHT uint8_t b_right_map[] = {
 #if LV_COLOR_DEPTH == 1 || LV_COLOR_DEPTH == 8
   /*Pixel format: Blue: 2 bit, Green: 3 bit, Red: 3 bit*/
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
@@ -108,12 +108,12 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_RIGHT uin
 #endif
 };
 
-const lv_img_dsc_t right = {
+const lv_img_dsc_t b_right = {
   .header.always_zero = 0,
   .header.w = 20,
   .header.h = 20,
   .data_size = 400 * LV_COLOR_SIZE / 8,
   .header.cf = LV_IMG_CF_TRUE_COLOR,
-  .data = right_map,
+  .data = b_right_map,
 };
 
