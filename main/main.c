@@ -29,17 +29,31 @@ static lv_obj_t *tab_view;
 
 static void tab_event_cb(lv_obj_t *slider, lv_event_t event);
 
+void heap_caps_alloc_failed_hook(size_t requested_size, uint32_t caps, const char *function_name)
+{
+    printf("%s was called but failed to allocate %d bytes with 0x%X capabilities. \n", function_name, requested_size, caps);
+    int stackSize = uxTaskGetStackHighWaterMark(NULL);
+    int minHeap = xPortGetMinimumEverFreeHeapSize();
+    int heapSize = xPortGetFreeHeapSize();
+    int capsSize = heap_caps_get_free_size(caps);
+    ESP_LOGI(TAG, "MAIN STACK HWM %d", stackSize);
+    ESP_LOGI(TAG, "MAIN HEAP HWM %d", heapSize);
+    ESP_LOGI(TAG, "MAIN MIN HEAP HWM %d", minHeap);
+    ESP_LOGI(TAG, "MAIN CAPS HEAP HWM %d", capsSize);
+}
+
 void app_main(void)
 {
     ESP_LOGI(TAG, "\n***************************************************\n Quiz Quest \n***************************************************");
+    heap_caps_register_failed_alloc_callback(heap_caps_alloc_failed_hook);
 
     // Initialize NVS for Wi-Fi stack to store data
     //TODO esp_err_t ret = nvs_flash_init();
     //if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
     //{
     //    ESP_ERROR_CHECK(nvs_flash_erase());
-     //   ret = nvs_flash_init();
-   // }
+    //   ret = nvs_flash_init();
+    // }
     //ESP_ERROR_CHECK(ret);
 
     esp_log_level_set("gpio", ESP_LOG_NONE);
@@ -51,7 +65,7 @@ void app_main(void)
 
     ui_start();
 
-/* TODO 
+    /* TODO 
     int wifi_retries = 3;
     int connected = init_wifi();
     while (!connected && wifi_retries >= 0)
@@ -114,11 +128,11 @@ static void tab_event_cb(lv_obj_t *slider, lv_event_t event)
         const char *tab_name = ext->tab_name_ptr[lv_tabview_get_tab_act(tab_view)];
         ESP_LOGI(TAG, "Current Active Tab: %s\n", tab_name);
 
-        //vTaskSuspend(TestTab_Handle);
+        vTaskSuspend(QuizTab_Handle);
 
-        if (strcmp(tab_name, TEST_TAB_NAME) == 0)
+        if (strcmp(tab_name, QUIZ_TAB_NAME) == 0)
         {
-            vTaskResume(TestTab_Handle);
+            vTaskResume(QuizTab_Handle);
         }
     }
 }
