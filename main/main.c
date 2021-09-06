@@ -22,6 +22,8 @@
 #include "qq_mqtt_client.h"
 #include "button_handler.h"
 #include "app_wifi.h"
+#include "imu_task.h"
+#include "mot-imu-tf.h"
 
 static const char *TAG = "MAIN";
 
@@ -64,6 +66,8 @@ void app_main(void)
     Core2ForAWS_Display_SetBrightness(40); // Last since the display first needs time to finish initializing.
     //init_tf();
 
+    init_imu();
+    init_mot_imu();
     ui_start();
     int connected = init_wifi();
 

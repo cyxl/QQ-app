@@ -15,25 +15,27 @@
 #include "qq_mqtt_client.h"
 #include "quiz_tab.h"
 
+#include "mot-imu-tf.h"
+
 #define QUIZ_PLOT_WIDTH 280
 #define QUIZ_PLOT_HEIGHT 200
 
 #define NUM_ACTIONS 6
 
-#define NUM_ACTION_CLASSES 6
-#define B_UP 0
-#define B_DOWN 1
-#define B_JUMP 2
-#define B_LEFT 3
-#define B_RIGHT 4
-#define B_SQUAT 5
+#define NUM_ACTION_CLASSES 9
+#define B_UP 1
+#define B_DOWN 2
+#define B_JUMP 5
+#define B_LEFT 7
+#define B_RIGHT 8
+#define B_SQUAT 6
 
-#define A_UP 6
-#define A_DOWN 7
-#define A_JUMP 8
-#define A_LEFT 9
-#define A_RIGHT 10
-#define A_SQUAT 11
+#define A_UP B_UP + NUM_ACTION_CLASSES
+#define A_DOWN B_DOWN + NUM_ACTION_CLASSES
+#define A_JUMP B_JUMP + NUM_ACTION_CLASSES
+#define A_LEFT B_LEFT + NUM_ACTION_CLASSES
+#define A_RIGHT B_RIGHT + NUM_ACTION_CLASSES
+#define A_SQUAT B_SQUAT + NUM_ACTION_CLASSES
 
 #define ICON_WIDTH 20
 #define ICON_PAD 2
@@ -71,7 +73,7 @@ void draw_answer_line(lv_obj_t *canvas, int x_pos, int y_pos, char *ans, int act
 
     for (int i = 0; i < num_actions; i++)
     {
-    lv_obj_t *n_img = lv_img_create(canvas, NULL);
+        lv_obj_t *n_img = lv_img_create(canvas, NULL);
         int act = actions[i];
         if (on_off[i] == true)
         {
@@ -116,7 +118,7 @@ void draw_answer_line(lv_obj_t *canvas, int x_pos, int y_pos, char *ans, int act
             lv_img_set_src(n_img, &a_squat);
             break;
         default:
-            printf("UNKNOWN ACTION!!!! %d",act);
+            printf("UNKNOWN ACTION!!!! %d", act);
         }
         lv_obj_align(n_img, NULL, LV_ALIGN_IN_TOP_LEFT, (ICON_WIDTH * i) + (ICON_PAD * i), y_pos + 15);
     }
@@ -146,12 +148,11 @@ void rebuild_quiz_canvas(lv_obj_t *canvas,
     draw_answer_line(canvas, 2, 150, ans4, actions[3], on_off[3], num_actions);
 
     xSemaphoreGive(xGuiSemaphore);
-
 }
 
 void display_quiz_tab(lv_obj_t *tv)
 {
-    bzero(current_question,256);
+    bzero(current_question, 256);
     lv_draw_line_dsc_init(&line_desc);
     lv_draw_label_dsc_init(&label_desc);
     label_desc.font = &lv_font_montserrat_12;
@@ -180,28 +181,30 @@ void quiz_tab_task(void *pvParameters)
     lv_obj_t *canvas = (lv_obj_t *)quiz_parms[0];
 
     int q_actions[4][NUM_ACTIONS] = {0}; //Randomly generate using rand()
+    static int actions[5] = {B_UP,B_LEFT,B_RIGHT,B_SQUAT,B_JUMP};
 
-    for (int i=0;i<4;i++)
+    for (int i = 0; i < 4; i++)
     {
-        for (int j=0;j<NUM_ACTIONS;j++)
-        {
-
-         q_actions[i][j] = rand()%NUM_ACTION_CLASSES; //Randomly generate using rand()
+        for (int j = 0; j < NUM_ACTIONS; j++)
+        {   
+            int r_act = actions[rand() % 5];
+            q_actions[i][j] = r_act;
         }
     }
 
     bool q_action_states[4][NUM_ACTIONS] = {false}; //Update will data from model inference
-    char* q = "This is a test question, the real question will be from a service?";
-    char* a1 = "answer 1";
-    char* a2 = "answer 2";
-    char* a3 = "answer 3";
-    char* a4 = "answer 4";
+
+    int state_check_idx[4] = {0};
+
     for (;;)
     {
 
-        if (strcmp(current_question,question) != 0)
+        int inf = get_latest_inf(4);
+        printf("inf : %d\n", inf);
+
+        if (strcmp(current_question, question) != 0)
         {
-            strcpy(current_question,question);
+            strcpy(current_question, question);
             //todo scramble correct/incorrect answers
             rebuild_quiz_canvas(canvas,
                                 question,
@@ -212,13 +215,28 @@ void quiz_tab_task(void *pvParameters)
                                 q_actions,
                                 q_action_states,
                                 NUM_ACTIONS);
+            bzero(q_action_states,4*NUM_ACTIONS*sizeof(bool));
+            bzero(state_check_idx,4*sizeof(int));
         }
-        int r_a = rand() % 4;
-        int r_act = rand() % NUM_ACTIONS;
-        int r_act_state = rand() % 2;
 
-        q_action_states[r_a][r_act]=r_act_state;
-        vTaskDelay(pdMS_TO_TICKS(10));
+        for (int i = 0; i < 4; i++)
+        {
+            if (q_actions[i][state_check_idx[i]] == inf)
+            {
+                q_action_states[i][state_check_idx[i]] = true;
+                state_check_idx[i] = state_check_idx[i] + 1;
+                rebuild_quiz_canvas(canvas,
+                                    question,
+                                    correct_answer,
+                                    incorrect_answers[0],
+                                    incorrect_answers[1],
+                                    incorrect_answers[2],
+                                    q_actions,
+                                    q_action_states,
+                                    NUM_ACTIONS);
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
     vTaskDelete(NULL); // Should never get to here...
 }
