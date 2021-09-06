@@ -19,6 +19,7 @@
 #include "game_tab.h"
 #include "test_tab.h"
 #include "quiz_tab.h"
+#include "qq_mqtt_client.h"
 #include "button_handler.h"
 #include "app_wifi.h"
 
@@ -48,13 +49,13 @@ void app_main(void)
     heap_caps_register_failed_alloc_callback(heap_caps_alloc_failed_hook);
 
     // Initialize NVS for Wi-Fi stack to store data
-    //TODO esp_err_t ret = nvs_flash_init();
-    //if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
-    //{
-    //    ESP_ERROR_CHECK(nvs_flash_erase());
-    //   ret = nvs_flash_init();
-    // }
-    //ESP_ERROR_CHECK(ret);
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+       ret = nvs_flash_init();
+     }
+    ESP_ERROR_CHECK(ret);
 
     esp_log_level_set("gpio", ESP_LOG_NONE);
     esp_log_level_set("ILI9341", ESP_LOG_NONE);
@@ -64,41 +65,34 @@ void app_main(void)
     //init_tf();
 
     ui_start();
-
-    /* TODO 
-    int wifi_retries = 3;
     int connected = init_wifi();
-    while (!connected && wifi_retries >= 0)
+
+    //Core2ForAWS_Sk6812_SetSideColor(SK6812_SIDE_LEFT, (current_red << 16) + (current_green << 8) + (current_blue));
+    static const char *btns[] = {"Close", ""};
+    if (connected == true)
     {
-        wifi_retries -= 1;
-
-        ESP_LOGI(TAG, "=====Unable to connect to WiFi...retrying=====");
+        qq_mqtt_client_init(0);
 
         xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
-        static const char *btns[] = {"Close", ""};
-        lv_obj_t *mbox1 = lv_msgbox_create(lv_scr_act(), NULL);
-        lv_msgbox_set_text(mbox1, "Wifi Failed");
-        lv_msgbox_add_btns(mbox1, btns);
-        lv_obj_set_width(mbox1, 200);
-        lv_obj_align(mbox1, NULL, LV_ALIGN_CENTER, 0, 0); 
-        xSemaphoreGive(xGuiSemaphore);
-        connected = init_wifi();
-    }
-
-    if (connected){
-        xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
-        static const char *btns[] = {"Close", ""};
         lv_obj_t *mbox1 = lv_msgbox_create(lv_scr_act(), NULL);
         lv_msgbox_set_text(mbox1, "Wifi Connected");
         lv_msgbox_add_btns(mbox1, btns);
         lv_obj_set_width(mbox1, 200);
-        lv_obj_align(mbox1, NULL, LV_ALIGN_CENTER, 0, 0); 
+        lv_obj_align(mbox1, NULL, LV_ALIGN_CENTER, 0, 0);
         xSemaphoreGive(xGuiSemaphore);
-
     }
-*/
-    //TODO maze_client_init();
-    //TODO mot_mqtt_client_init();
+    else
+    {
+        xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
+        lv_obj_t *mbox1 = lv_msgbox_create(lv_scr_act(), NULL);
+        lv_msgbox_set_text(mbox1, "Wifi Failed");
+        lv_msgbox_add_btns(mbox1, btns);
+        lv_obj_set_width(mbox1, 200);
+        lv_obj_align(mbox1, NULL, LV_ALIGN_CENTER, 0, 0);
+        xSemaphoreGive(xGuiSemaphore);
+    }
+
+
 }
 
 static void ui_start(void)

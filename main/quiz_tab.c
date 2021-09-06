@@ -12,7 +12,7 @@
 #include "esp_log.h"
 
 #include "core2forAWS.h"
-
+#include "qq_mqtt_client.h"
 #include "quiz_tab.h"
 
 #define QUIZ_PLOT_WIDTH 280
@@ -54,6 +54,7 @@ LV_IMG_DECLARE(b_jump);
 static lv_color_t *cbuf;
 static lv_draw_label_dsc_t label_desc;
 static lv_draw_line_dsc_t line_desc;
+char current_question[256];
 //static int actions[NUM_ACTIONS] = {0};
 //static bool action_states[NUM_ACTIONS] = {false};
 
@@ -150,6 +151,7 @@ void rebuild_quiz_canvas(lv_obj_t *canvas,
 
 void display_quiz_tab(lv_obj_t *tv)
 {
+    bzero(current_question,256);
     lv_draw_line_dsc_init(&line_desc);
     lv_draw_label_dsc_init(&label_desc);
     label_desc.font = &lv_font_montserrat_12;
@@ -187,6 +189,7 @@ void quiz_tab_task(void *pvParameters)
          q_actions[i][j] = rand()%NUM_ACTION_CLASSES; //Randomly generate using rand()
         }
     }
+
     bool q_action_states[4][NUM_ACTIONS] = {false}; //Update will data from model inference
     char* q = "This is a test question, the real question will be from a service?";
     char* a1 = "answer 1";
@@ -195,13 +198,26 @@ void quiz_tab_task(void *pvParameters)
     char* a4 = "answer 4";
     for (;;)
     {
+
+        if (strcmp(current_question,question) != 0)
+        {
+            strcpy(current_question,question);
+            //todo scramble correct/incorrect answers
+            rebuild_quiz_canvas(canvas,
+                                question,
+                                correct_answer,
+                                incorrect_answers[0],
+                                incorrect_answers[1],
+                                incorrect_answers[2],
+                                q_actions,
+                                q_action_states,
+                                NUM_ACTIONS);
+        }
         int r_a = rand() % 4;
         int r_act = rand() % NUM_ACTIONS;
         int r_act_state = rand() % 2;
 
-        printf("vals %d,%d,%d\n",r_a,r_act,r_act_state);
         q_action_states[r_a][r_act]=r_act_state;
-        rebuild_quiz_canvas(canvas,q,a1,a2,a3,a4,q_actions,q_action_states,NUM_ACTIONS);
         vTaskDelay(pdMS_TO_TICKS(10));
     }
     vTaskDelete(NULL); // Should never get to here...
