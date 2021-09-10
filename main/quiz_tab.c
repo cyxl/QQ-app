@@ -18,7 +18,7 @@
 #include "mot-imu-tf.h"
 
 #define QUIZ_PLOT_WIDTH 280
-#define QUIZ_PLOT_HEIGHT 200
+#define QUIZ_PLOT_HEIGHT 185
 
 #define NUM_ACTIONS 6
 
@@ -26,9 +26,9 @@
 #define B_UP 1
 #define B_DOWN 2
 #define B_JUMP 5
+#define B_SQUAT 6
 #define B_LEFT 7
 #define B_RIGHT 8
-#define B_SQUAT 6
 
 #define A_UP B_UP + NUM_ACTION_CLASSES
 #define A_DOWN B_DOWN + NUM_ACTION_CLASSES
@@ -57,8 +57,9 @@ static lv_color_t *cbuf;
 static lv_draw_label_dsc_t label_desc;
 static lv_draw_line_dsc_t line_desc;
 char current_question[256];
-//static int actions[NUM_ACTIONS] = {0};
-//static bool action_states[NUM_ACTIONS] = {false};
+
+static bool q_action_states[4][NUM_ACTIONS] = {false}; //Update will data from model inference
+static int state_check_idx[4] = {0};
 
 void draw_answer_line(lv_obj_t *canvas, int x_pos, int y_pos, char *ans, int actions[NUM_ACTIONS], bool on_off[NUM_ACTIONS], int num_actions)
 {
@@ -141,7 +142,7 @@ void rebuild_quiz_canvas(lv_obj_t *canvas,
     xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
     lv_obj_clean(canvas);
     lv_canvas_fill_bg(canvas, LV_COLOR_WHITE, LV_OPA_COVER);
-    lv_canvas_draw_text(canvas, 1, 1, 300, &label_desc, question, LV_LABEL_ALIGN_LEFT);
+    lv_canvas_draw_text(canvas, 1, 1, QUIZ_PLOT_WIDTH, &label_desc, question, LV_LABEL_ALIGN_LEFT);
     draw_answer_line(canvas, 2, 45, ans1, actions[0], on_off[0], num_actions);
     draw_answer_line(canvas, 2, 80, ans2, actions[1], on_off[1], num_actions);
     draw_answer_line(canvas, 2, 115, ans3, actions[2], on_off[2], num_actions);
@@ -160,17 +161,63 @@ void display_quiz_tab(lv_obj_t *tv)
     xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
     lv_obj_t *quiz_tab = lv_tabview_add_tab(tv, QUIZ_TAB_NAME); // Create a tab
 
+
+    //Leader board
+    lv_obj_t *leader_lbl = lv_label_create(quiz_tab, NULL);
+    lv_label_set_long_mode(leader_lbl, LV_LABEL_LONG_SROLL_CIRC); /*Circular scroll*/
+    lv_obj_set_width(leader_lbl, 290);
+    lv_label_set_recolor(leader_lbl,true);
+    lv_label_set_text(leader_lbl, "#0000ff Leader Board: Brayden:190 Dad:12 FooBar:1#");
+    lv_obj_align(leader_lbl, NULL, LV_ALIGN_IN_TOP_MID, 0, 2);
+
+    //Main canvas
     cbuf = (lv_color_t *)heap_caps_malloc(LV_CANVAS_BUF_SIZE_TRUE_COLOR(QUIZ_PLOT_WIDTH, QUIZ_PLOT_HEIGHT), MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM);
     lv_obj_t *canvas = lv_canvas_create(quiz_tab, NULL);
     lv_canvas_set_buffer(canvas, cbuf, QUIZ_PLOT_WIDTH, QUIZ_PLOT_HEIGHT, LV_IMG_CF_TRUE_COLOR);
-
-    lv_obj_align(canvas, NULL, LV_ALIGN_IN_TOP_LEFT, 5, 5);
+    lv_obj_align(canvas, NULL, LV_ALIGN_IN_TOP_LEFT, 2, 22);
     lv_canvas_fill_bg(canvas, LV_COLOR_WHITE, LV_OPA_COVER);
     xSemaphoreGive(xGuiSemaphore);
-    static lv_obj_t *quiz_parms[1];
+
+    static lv_obj_t *quiz_parms[2];
     quiz_parms[0] = canvas;
+    quiz_parms[1] = leader_lbl;
 
     xTaskCreatePinnedToCore(quiz_tab_task, "QuizTask", 2048 * 2, quiz_parms, 1, &QuizTab_Handle, 0);
+}
+
+void clear()
+{
+    //TODO wrap in semaphore
+    bzero(q_action_states, 4 * NUM_ACTIONS * sizeof(bool));
+    bzero(state_check_idx, 4 * sizeof(int));
+}
+
+int get_answer(bool states[4][NUM_ACTIONS])
+{
+    for (int i = 0; i < 4; i++)
+    {
+        bool alltrue = true;
+        for (int j = 0; j < NUM_ACTIONS; j++)
+        {
+            alltrue &= states[i][j];
+        }
+        if (alltrue == true)
+            return i;
+    }
+    return -1;
+}
+
+void shuffle_actions(int all_actions[6], int actions[4][NUM_ACTIONS])
+{
+
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < NUM_ACTIONS; j++)
+        {
+            int r_act = all_actions[rand() % 5];
+            actions[i][j] = r_act;
+        }
+    }
 }
 
 void quiz_tab_task(void *pvParameters)
@@ -181,62 +228,58 @@ void quiz_tab_task(void *pvParameters)
     lv_obj_t *canvas = (lv_obj_t *)quiz_parms[0];
 
     int q_actions[4][NUM_ACTIONS] = {0}; //Randomly generate using rand()
-    static int actions[5] = {B_UP,B_LEFT,B_RIGHT,B_SQUAT,B_JUMP};
-
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 0; j < NUM_ACTIONS; j++)
-        {   
-            int r_act = actions[rand() % 5];
-            q_actions[i][j] = r_act;
-        }
-    }
-
-    bool q_action_states[4][NUM_ACTIONS] = {false}; //Update will data from model inference
-
-    int state_check_idx[4] = {0};
+    static int actions[6] = {B_UP, B_DOWN, B_LEFT, B_RIGHT, B_SQUAT, B_JUMP};
 
     for (;;)
     {
 
-        int inf = get_latest_inf(4);
+        int inf = get_latest_inf(6);
         printf("inf : %d\n", inf);
 
         if (strcmp(current_question, question) != 0)
         {
             strcpy(current_question, question);
-            //todo scramble correct/incorrect answers
-            rebuild_quiz_canvas(canvas,
-                                question,
-                                correct_answer,
-                                incorrect_answers[0],
-                                incorrect_answers[1],
-                                incorrect_answers[2],
-                                q_actions,
-                                q_action_states,
-                                NUM_ACTIONS);
-            bzero(q_action_states,4*NUM_ACTIONS*sizeof(bool));
-            bzero(state_check_idx,4*sizeof(int));
+            clear();
+            shuffle_actions(actions, q_actions);
         }
 
         for (int i = 0; i < 4; i++)
         {
             if (q_actions[i][state_check_idx[i]] == inf)
             {
+                //TODO wrap in sema
                 q_action_states[i][state_check_idx[i]] = true;
                 state_check_idx[i] = state_check_idx[i] + 1;
-                rebuild_quiz_canvas(canvas,
-                                    question,
-                                    correct_answer,
-                                    incorrect_answers[0],
-                                    incorrect_answers[1],
-                                    incorrect_answers[2],
-                                    q_actions,
-                                    q_action_states,
-                                    NUM_ACTIONS);
             }
         }
-        vTaskDelay(pdMS_TO_TICKS(100));
+
+        int answer = get_answer(q_action_states);
+
+        if (answer >= 0)
+        {
+
+            xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
+            static const char *btns[] = {"Close", ""};
+
+            lv_obj_t *mbox1 = lv_msgbox_create(lv_scr_act(), NULL);
+            lv_msgbox_set_text_fmt(mbox1, "Ans: %d", answer);
+            lv_msgbox_add_btns(mbox1, btns);
+            lv_obj_set_width(mbox1, 200);
+            lv_obj_align(mbox1, NULL, LV_ALIGN_CENTER, 0, 0); /*Align to the corner*/
+            xSemaphoreGive(xGuiSemaphore);
+            clear();
+        }
+
+        rebuild_quiz_canvas(canvas,
+                            question,
+                            correct_answer,
+                            incorrect_answers[0],
+                            incorrect_answers[1],
+                            incorrect_answers[2],
+                            q_actions,
+                            q_action_states,
+                            NUM_ACTIONS);
+        vTaskDelay(pdMS_TO_TICKS(300));
     }
     vTaskDelete(NULL); // Should never get to here...
 }
