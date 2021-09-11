@@ -9,6 +9,6 @@ TaskHandle_t MotMqttClientHandle;
 void qq_mqtt_client_init(int game_id);
 
 extern char question[256];
-extern char correct_answer[128];
-extern char incorrect_answers[4][128];
+extern int correct_answer_idx;
+extern char answers[4][128];
 #endif

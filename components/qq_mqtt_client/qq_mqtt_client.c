@@ -15,7 +15,6 @@
 #include "core2forAWS.h"
 #include "qq_mqtt_client.h"
 
-
 #define SUBSCRIBE_TOPIC_LEN (CLIENT_ID_LEN + 3)
 #define JSON_BUFSIZE 1024 * 2
 #define CLIENT_ID_LEN (ATCA_SERIAL_NUM_SIZE * 2)
@@ -46,8 +45,8 @@ static char game_topic[64];
 static char qq_client_id[CLIENT_ID_LEN + 1];
 
 char question[256];
-char correct_answer[128];
-char incorrect_answers[4][128];
+int correct_answer_idx = -2;
+char answers[4][128];
 
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
@@ -93,30 +92,31 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         }
         else
         {
-            //{"category": "Entertainment: Cartoon & Animations", 
-            // "type": "boolean", 
-            // "difficulty": "medium", 
-            // "question": "Night on Bald Mountain was one of the musical pieces featured in Disney&#039;s 1940&#039;s film Fantasia.", 
-            // "correct_answer": "True", 
+            //{"category": "Entertainment: Cartoon & Animations",
+            // "type": "boolean",
+            // "difficulty": "medium",
+            // "question": "Night on Bald Mountain was one of the musical pieces featured in Disney&#039;s 1940&#039;s film Fantasia.",
+            // "correct_answer": "True",
             // "incorrect_answers": ["False"]}
 
             cJSON *cat = cJSON_GetObjectItemCaseSensitive(message_json, "category");
             cJSON *type = cJSON_GetObjectItemCaseSensitive(message_json, "type");
             cJSON *dif = cJSON_GetObjectItemCaseSensitive(message_json, "difficulty");
             cJSON *q = cJSON_GetObjectItemCaseSensitive(message_json, "question");
-            cJSON *c_ans = cJSON_GetObjectItemCaseSensitive(message_json, "correct_answer");
-            cJSON *i_ans = cJSON_GetObjectItemCaseSensitive(message_json, "incorrect_answers");
+            cJSON *c_ans_idx = cJSON_GetObjectItemCaseSensitive(message_json, "correct_answer_idx");
+            cJSON *ans = cJSON_GetObjectItemCaseSensitive(message_json, "answers");
 
-            strcpy(question,q->valuestring);
-            strcpy(correct_answer,c_ans->valuestring);
+            strcpy(question, q->valuestring);
+            correct_answer_idx = c_ans_idx->valueint;
 
-            for (int i=0;i<cJSON_GetArraySize(i_ans);i++){
-                cJSON* n = cJSON_GetArrayItem(i_ans,i);
-                strcpy(incorrect_answers[i],n->valuestring);
-            }
-            for (int i=cJSON_GetArraySize(i_ans);i<4;i++)
+            for (int i = 0; i < cJSON_GetArraySize(ans); i++)
             {
-                bzero(incorrect_answers[i],128);
+                cJSON *n = cJSON_GetArrayItem(ans, i);
+                strcpy(answers[i], n->valuestring);
+            }
+            for (int i = cJSON_GetArraySize(ans); i < 4; i++)
+            {
+                bzero(answers[i], 128);
             }
 
             cJSON_Delete(message_json);
@@ -149,12 +149,12 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
 void qq_mqtt_client_init(int game_id)
 {
+    ESP_LOGI(TAG, "init");
     //TODO use defines
-    bzero(question,256);
-    bzero(correct_answer,128);
-    bzero(incorrect_answers,4*128);
+    bzero(question, 256);
+    bzero(answers, 4 * 128);
 
-    sprintf(game_topic,"qq/game/%d",0);
+    sprintf(game_topic, "qq/game/%d", 0);
     ATCA_STATUS ret = Atecc608_GetSerialString(qq_client_id);
 
     if (ret != ATCA_SUCCESS)

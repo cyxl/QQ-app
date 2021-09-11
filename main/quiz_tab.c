@@ -17,11 +17,11 @@
 
 #include "mot-imu-tf.h"
 
-#define QUIZ_PLOT_WIDTH 280
+#define QUIZ_PLOT_WIDTH 290
 #define QUIZ_PLOT_HEIGHT 185
 
 #define NUM_ACTIONS 6
-#define INF_WAIT_MS 600 
+#define INF_WAIT_MS 600
 
 #define NUM_ACTION_CLASSES 9
 #define B_UP 1
@@ -119,8 +119,8 @@ void draw_answer_line(lv_obj_t *canvas, int x_pos, int y_pos, char *ans, int act
         case A_SQUAT:
             lv_img_set_src(n_img, &a_squat);
             break;
-        default:
-            printf("UNKNOWN ACTION!!!! %d", act);
+        // default:
+            // printf("UNKNOWN ACTION!!!! %d", act);
         }
         lv_obj_align(n_img, NULL, LV_ALIGN_IN_TOP_LEFT, (ICON_WIDTH * i) + (ICON_PAD * i), y_pos + 15);
     }
@@ -166,21 +166,30 @@ void display_quiz_tab(lv_obj_t *tv)
     lv_obj_t *leader_lbl = lv_label_create(quiz_tab, NULL);
     lv_label_set_long_mode(leader_lbl, LV_LABEL_LONG_SROLL_CIRC); /*Circular scroll*/
     lv_obj_set_width(leader_lbl, 290);
-    lv_label_set_recolor(leader_lbl,true);
+    lv_label_set_recolor(leader_lbl, true);
     lv_label_set_text(leader_lbl, "#0000ff Leader Board: Brayden:190 Dad:12 FooBar:1#");
     lv_obj_align(leader_lbl, NULL, LV_ALIGN_IN_TOP_MID, 0, 2);
+
+    // Bottom text
+    lv_obj_t *bottom_lbl = lv_label_create(quiz_tab, NULL);
+    lv_label_set_long_mode(bottom_lbl, LV_LABEL_LONG_SROLL_CIRC); /*Circular scroll*/
+    lv_obj_set_width(bottom_lbl, 290);
+    lv_label_set_recolor(bottom_lbl, true);
+    lv_label_set_text(bottom_lbl, "#0000ff Client acc: 10.0 Steps: 100 Players: 1 Time: 10#");
+    lv_obj_align(bottom_lbl, NULL, LV_ALIGN_IN_BOTTOM_MID, 0, -15);
 
     //Main canvas
     cbuf = (lv_color_t *)heap_caps_malloc(LV_CANVAS_BUF_SIZE_TRUE_COLOR(QUIZ_PLOT_WIDTH, QUIZ_PLOT_HEIGHT), MALLOC_CAP_DEFAULT | MALLOC_CAP_SPIRAM);
     lv_obj_t *canvas = lv_canvas_create(quiz_tab, NULL);
     lv_canvas_set_buffer(canvas, cbuf, QUIZ_PLOT_WIDTH, QUIZ_PLOT_HEIGHT, LV_IMG_CF_TRUE_COLOR);
-    lv_obj_align(canvas, NULL, LV_ALIGN_IN_TOP_LEFT, 2, 22);
+    lv_obj_align(canvas, NULL, LV_ALIGN_IN_TOP_MID, 2, 22);
     lv_canvas_fill_bg(canvas, LV_COLOR_WHITE, LV_OPA_COVER);
     xSemaphoreGive(xGuiSemaphore);
 
-    static lv_obj_t *quiz_parms[2];
+    static lv_obj_t *quiz_parms[3];
     quiz_parms[0] = canvas;
     quiz_parms[1] = leader_lbl;
+    quiz_parms[2] = bottom_lbl;
 
     xTaskCreatePinnedToCore(quiz_tab_task, "QuizTask", 2048 * 2, quiz_parms, 1, &QuizTab_Handle, 0);
 }
@@ -255,14 +264,27 @@ void quiz_tab_task(void *pvParameters)
 
         int answer = get_answer(q_action_states);
 
-        if (answer >= 0)
+        if (answer == correct_answer_idx)
         {
 
             xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
             static const char *btns[] = {"Close", ""};
 
             lv_obj_t *mbox1 = lv_msgbox_create(lv_scr_act(), NULL);
-            lv_msgbox_set_text_fmt(mbox1, "Ans: %d", answer);
+            lv_msgbox_set_text_fmt(mbox1, "Correct");
+            lv_msgbox_add_btns(mbox1, btns);
+            lv_obj_set_width(mbox1, 200);
+            lv_obj_align(mbox1, NULL, LV_ALIGN_CENTER, 0, 0); /*Align to the corner*/
+            xSemaphoreGive(xGuiSemaphore);
+            clear();
+        }
+        else if (answer >= 0)
+        {
+            xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
+            static const char *btns[] = {"Close", ""};
+
+            lv_obj_t *mbox1 = lv_msgbox_create(lv_scr_act(), NULL);
+            lv_msgbox_set_text_fmt(mbox1, "Incorrect");
             lv_msgbox_add_btns(mbox1, btns);
             lv_obj_set_width(mbox1, 200);
             lv_obj_align(mbox1, NULL, LV_ALIGN_CENTER, 0, 0); /*Align to the corner*/
@@ -272,10 +294,10 @@ void quiz_tab_task(void *pvParameters)
 
         rebuild_quiz_canvas(canvas,
                             question,
-                            correct_answer,
-                            incorrect_answers[0],
-                            incorrect_answers[1],
-                            incorrect_answers[2],
+                            answers[0],
+                            answers[1],
+                            answers[2],
+                            answers[3],
                             q_actions,
                             q_action_states,
                             NUM_ACTIONS);
