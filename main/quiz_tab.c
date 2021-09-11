@@ -21,6 +21,7 @@
 #define QUIZ_PLOT_HEIGHT 185
 
 #define NUM_ACTIONS 6
+#define INF_WAIT_MS 600 
 
 #define NUM_ACTION_CLASSES 9
 #define B_UP 1
@@ -161,7 +162,6 @@ void display_quiz_tab(lv_obj_t *tv)
     xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
     lv_obj_t *quiz_tab = lv_tabview_add_tab(tv, QUIZ_TAB_NAME); // Create a tab
 
-
     //Leader board
     lv_obj_t *leader_lbl = lv_label_create(quiz_tab, NULL);
     lv_label_set_long_mode(leader_lbl, LV_LABEL_LONG_SROLL_CIRC); /*Circular scroll*/
@@ -214,7 +214,7 @@ void shuffle_actions(int all_actions[6], int actions[4][NUM_ACTIONS])
     {
         for (int j = 0; j < NUM_ACTIONS; j++)
         {
-            int r_act = all_actions[rand() % 5];
+            int r_act = all_actions[rand() % NUM_ACTIONS];
             actions[i][j] = r_act;
         }
     }
@@ -233,7 +233,7 @@ void quiz_tab_task(void *pvParameters)
     for (;;)
     {
 
-        int inf = get_latest_inf(6);
+        int inf = get_latest_inf(4);
         printf("inf : %d\n", inf);
 
         if (strcmp(current_question, question) != 0)
