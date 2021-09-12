@@ -248,11 +248,10 @@ void quiz_tab_task(void *pvParameters)
         int inf = -1;
         if (inferring == true)
         {
-            get_latest_inf(5);
+            inf = get_latest_inf(5);
         }
         printf("inf : %d\n", inf);
 
-        xSemaphoreTake(qqMqttSemaphore,portMAX_DELAY);
         if (strcmp(current_question, question) != 0)
         {
             inferring = true;
@@ -261,7 +260,6 @@ void quiz_tab_task(void *pvParameters)
             if (answer == -1)send_answer(qq_client_id, false, time(NULL));
             shuffle_actions(actions, q_actions);
         }
-        xSemaphoreGive(qqMqttSemaphore);
 
         for (int i = 0; i < 4; i++)
         {

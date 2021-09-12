@@ -52,10 +52,8 @@ char current_leaders[LEADER_COUNT][32];
 int current_leader_scores[LEADER_COUNT];
 static const char *qq_client_id = CONFIG_QQ_CLIENT_ID;
 
-SemaphoreHandle_t qqMqttSemaphore;
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
-    xSemaphoreTake(qqMqttSemaphore, portMAX_DELAY);
     ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%d", base, event_id);
     esp_mqtt_event_handle_t event = event_data;
     esp_mqtt_client_handle_t client = event->client;
@@ -87,9 +85,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         //printf("DATA=%.*s\r\n", event->data_len, event->data);
 
         event->data[event->data_len] = '\0';
+        printf("data size %d", event->data_len);
         cJSON *message_json = cJSON_Parse(event->data);
-        printf ("e data %s\n",event->data);
-        printf("json %s\n",cJSON_Print(message_json));
+        printf("e data %s\n", event->data);
+        printf("json %s\n", cJSON_Print(message_json));
         if (message_json == NULL)
         {
             fprintf(stderr, "Error with json");
@@ -102,6 +101,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         else
         {
             cJSON *msgtype = cJSON_GetObjectItemCaseSensitive(message_json, "msgtype");
+            printf("msgtype %d\n", msgtype->valueint);
             if (msgtype->valueint == 2)
             {
                 cJSON *leaders = cJSON_GetObjectItemCaseSensitive(message_json, "leaders");
@@ -120,11 +120,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                 //cJSON *type = cJSON_GetObjectItemCaseSensitive(message_json, "type");
                 // cJSON *dif = cJSON_GetObjectItemCaseSensitive(message_json, "difficulty");
                 cJSON *msg_q = cJSON_GetObjectItemCaseSensitive(message_json, "question");
-                cJSON *c_ans_idx = cJSON_GetObjectItemCaseSensitive(message_json, "correct_answer_idx");
+                cJSON *c_ans_idx = cJSON_GetObjectItemCaseSensitive(message_json, "correct_answer_index");
                 cJSON *ans = cJSON_GetObjectItemCaseSensitive(message_json, "answers");
 
-                //                printf("got string %s\n",msg_q->valuestring);
-                //strcpy(question, msg_q->valuestring);
+                strcpy(question, msg_q->valuestring);
                 correct_answer_idx = c_ans_idx->valueint;
 
                 for (int i = 0; i < cJSON_GetArraySize(ans); i++)
@@ -137,8 +136,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                     bzero(answers[i], 128);
                 }
             }
+            cJSON_Delete(message_json);
         }
-        cJSON_Delete(message_json);
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -162,7 +161,6 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "Other event id:%d", event->event_id);
         break;
     }
-    xSemaphoreGive(qqMqttSemaphore);
 }
 
 void send_answer(char *player_id, bool right_wrong, unsigned time)
@@ -192,7 +190,6 @@ void send_answer(char *player_id, bool right_wrong, unsigned time)
 
 void qq_mqtt_client_init(int game_id)
 {
-    qqMqttSemaphore = xSemaphoreCreateMutex();
 
     ESP_LOGI(TAG, "init");
     //TODO use defines
