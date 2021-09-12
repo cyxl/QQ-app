@@ -42,11 +42,11 @@ static esp_mqtt_client_handle_t glb_client;
 static bool is_inited = false;
 static const char *json_buf = NULL;
 static char game_topic[64];
-static char qq_client_id[CLIENT_ID_LEN + 1];
 
 char question[256];
 int correct_answer_idx = -2;
 char answers[4][128];
+static const char *qq_client_id = CONFIG_QQ_CLIENT_ID;
 
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
@@ -103,8 +103,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             cJSON *type = cJSON_GetObjectItemCaseSensitive(message_json, "type");
             cJSON *dif = cJSON_GetObjectItemCaseSensitive(message_json, "difficulty");
             cJSON *q = cJSON_GetObjectItemCaseSensitive(message_json, "question");
-            cJSON *c_ans_idx = cJSON_GetObjectItemCaseSensitive(message_json, "correct_answer_idx");
             cJSON *ans = cJSON_GetObjectItemCaseSensitive(message_json, "answers");
+            cJSON *c_ans_idx = cJSON_GetObjectItemCaseSensitive(message_json, "correct_answer_index");
 
             strcpy(question, q->valuestring);
             correct_answer_idx = c_ans_idx->valueint;
@@ -155,13 +155,6 @@ void qq_mqtt_client_init(int game_id)
     bzero(answers, 4 * 128);
 
     sprintf(game_topic, "qq/game/%d", 0);
-    ATCA_STATUS ret = Atecc608_GetSerialString(qq_client_id);
-
-    if (ret != ATCA_SUCCESS)
-    {
-        printf("Failed to get device serial from secure element. Error: %i", ret);
-        abort();
-    }
 
     ESP_LOGI(TAG, "Client ID:%s", qq_client_id);
     json_buf = malloc(JSON_BUFSIZE);

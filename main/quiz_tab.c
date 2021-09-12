@@ -242,7 +242,7 @@ void quiz_tab_task(void *pvParameters)
     for (;;)
     {
 
-        int inf = get_latest_inf(4);
+        int inf = get_latest_inf(2);
         printf("inf : %d\n", inf);
 
         if (strcmp(current_question, question) != 0)

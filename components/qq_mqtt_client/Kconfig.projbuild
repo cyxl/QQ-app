@@ -1,0 +1,9 @@
+menu "QQ MQTT Config"
+
+    config QQ_CLIENT_ID
+        string "QQ Client ID"
+        default "qq0"
+        help
+            The unique ID for this QQ client
+
+endmenu
