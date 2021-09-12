@@ -119,7 +119,7 @@ void draw_answer_line(lv_obj_t *canvas, int x_pos, int y_pos, char *ans, int act
         case A_SQUAT:
             lv_img_set_src(n_img, &a_squat);
             break;
-        // default:
+            // default:
             // printf("UNKNOWN ACTION!!!! %d", act);
         }
         lv_obj_align(n_img, NULL, LV_ALIGN_IN_TOP_LEFT, (ICON_WIDTH * i) + (ICON_PAD * i), y_pos + 15);
@@ -167,7 +167,6 @@ void display_quiz_tab(lv_obj_t *tv)
     lv_label_set_long_mode(leader_lbl, LV_LABEL_LONG_SROLL_CIRC); /*Circular scroll*/
     lv_obj_set_width(leader_lbl, 290);
     lv_label_set_recolor(leader_lbl, true);
-    lv_label_set_text(leader_lbl, "#0000ff Leader Board: Brayden:190 Dad:12 FooBar:1#");
     lv_obj_align(leader_lbl, NULL, LV_ALIGN_IN_TOP_MID, 0, 2);
 
     // Bottom text
@@ -175,7 +174,6 @@ void display_quiz_tab(lv_obj_t *tv)
     lv_label_set_long_mode(bottom_lbl, LV_LABEL_LONG_SROLL_CIRC); /*Circular scroll*/
     lv_obj_set_width(bottom_lbl, 290);
     lv_label_set_recolor(bottom_lbl, true);
-    lv_label_set_text(bottom_lbl, "#0000ff Client acc: 10.0 Steps: 100 Players: 1 Time: 10#");
     lv_obj_align(bottom_lbl, NULL, LV_ALIGN_IN_BOTTOM_MID, 0, -15);
 
     //Main canvas
@@ -235,6 +233,10 @@ void quiz_tab_task(void *pvParameters)
     vTaskSuspend(NULL);
     lv_obj_t **quiz_parms = (lv_obj_t **)pvParameters;
     lv_obj_t *canvas = (lv_obj_t *)quiz_parms[0];
+    lv_obj_t *leader_lbl = (lv_obj_t *)quiz_parms[1];
+    lv_obj_t *bottom_lbl = (lv_obj_t *)quiz_parms[2];
+
+    bool inferring = true;
 
     int q_actions[4][NUM_ACTIONS] = {0}; //Randomly generate using rand()
     static int actions[6] = {B_UP, B_DOWN, B_LEFT, B_RIGHT, B_SQUAT, B_JUMP};
@@ -242,11 +244,16 @@ void quiz_tab_task(void *pvParameters)
     for (;;)
     {
 
-        int inf = get_latest_inf(4);
+        int inf = -1;
+        if (inferring == true)
+        {
+            get_latest_inf(4);
+        }
         printf("inf : %d\n", inf);
 
         if (strcmp(current_question, question) != 0)
         {
+            inferring = true;
             strcpy(current_question, question);
             clear();
             shuffle_actions(actions, q_actions);
@@ -277,6 +284,8 @@ void quiz_tab_task(void *pvParameters)
             lv_obj_align(mbox1, NULL, LV_ALIGN_CENTER, 0, 0); /*Align to the corner*/
             xSemaphoreGive(xGuiSemaphore);
             clear();
+            send_answer()
+            inferring = false;
         }
         else if (answer >= 0)
         {
@@ -290,6 +299,7 @@ void quiz_tab_task(void *pvParameters)
             lv_obj_align(mbox1, NULL, LV_ALIGN_CENTER, 0, 0); /*Align to the corner*/
             xSemaphoreGive(xGuiSemaphore);
             clear();
+            inferring = false;
         }
 
         rebuild_quiz_canvas(canvas,
@@ -301,6 +311,15 @@ void quiz_tab_task(void *pvParameters)
                             q_actions,
                             q_action_states,
                             NUM_ACTIONS);
+        xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
+        lv_label_set_text_fmt(bottom_lbl, "#0000ff Client Acc: %d Steps: 100 Players: 1 Time: 10#", inf);
+        lv_label_set_text_fmt(leader_lbl, "#0000ff Leader Board: %s:%d %s:%d %s:%d %s:%d %s:%d#",
+                              current_leaders[0], current_leader_scores[0],
+                              current_leaders[1], current_leader_scores[1],
+                              current_leaders[2], current_leader_scores[2],
+                              current_leaders[3], current_leader_scores[3],
+                              current_leaders[4], current_leader_scores[4]);
+        xSemaphoreGive(xGuiSemaphore);
         vTaskDelay(pdMS_TO_TICKS(300));
     }
     vTaskDelete(NULL); // Should never get to here...

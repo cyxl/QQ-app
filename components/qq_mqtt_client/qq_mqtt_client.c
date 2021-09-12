@@ -43,10 +43,14 @@ static bool is_inited = false;
 static const char *json_buf = NULL;
 static char game_topic[64];
 static char qq_client_id[CLIENT_ID_LEN + 1];
-
+#define LEADER_MSG_TYPE 2
+#define QUESTION_MSG_TYPE 3
+#define QUESTION_RESPONSE_MSG_TYPE 1
 char question[256];
 int correct_answer_idx = -2;
 char answers[4][128];
+char current_leaders[LEADER_COUNT][32];
+int current_leader_scores[LEADER_COUNT];
 
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
@@ -92,31 +96,40 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         }
         else
         {
-            //{"category": "Entertainment: Cartoon & Animations",
-            // "type": "boolean",
-            // "difficulty": "medium",
-            // "question": "Night on Bald Mountain was one of the musical pieces featured in Disney&#039;s 1940&#039;s film Fantasia.",
-            // "correct_answer": "True",
-            // "incorrect_answers": ["False"]}
-
-            cJSON *cat = cJSON_GetObjectItemCaseSensitive(message_json, "category");
             cJSON *type = cJSON_GetObjectItemCaseSensitive(message_json, "type");
-            cJSON *dif = cJSON_GetObjectItemCaseSensitive(message_json, "difficulty");
-            cJSON *q = cJSON_GetObjectItemCaseSensitive(message_json, "question");
-            cJSON *c_ans_idx = cJSON_GetObjectItemCaseSensitive(message_json, "correct_answer_idx");
-            cJSON *ans = cJSON_GetObjectItemCaseSensitive(message_json, "answers");
-
-            strcpy(question, q->valuestring);
-            correct_answer_idx = c_ans_idx->valueint;
-
-            for (int i = 0; i < cJSON_GetArraySize(ans); i++)
+            if (type->valueint == 2)
             {
-                cJSON *n = cJSON_GetArrayItem(ans, i);
-                strcpy(answers[i], n->valuestring);
+                cJSON *leaders = cJSON_GetObjectItemCaseSensitive(message_json, "leaders");
+                for (int i = 0; i < cJSON_GetArraySize(leaders) && i < LEADER_COUNT; i++)
+                {
+                    cJSON *n = cJSON_GetArrayItem(leaders, i);
+                    cJSON *player_id = cJSON_GetObjectItemCaseSensitive(n, "player_id");
+                    cJSON *count = cJSON_GetObjectItemCaseSensitive(n, "count");
+                    strncpy(current_leaders[i], player_id->valuestring, 32);
+                    current_leader_scores[i] = count->valueint;
+                }
             }
-            for (int i = cJSON_GetArraySize(ans); i < 4; i++)
+            else if (type->valueint == 1)
             {
-                bzero(answers[i], 128);
+                cJSON *cat = cJSON_GetObjectItemCaseSensitive(message_json, "category");
+                cJSON *type = cJSON_GetObjectItemCaseSensitive(message_json, "type");
+                cJSON *dif = cJSON_GetObjectItemCaseSensitive(message_json, "difficulty");
+                cJSON *q = cJSON_GetObjectItemCaseSensitive(message_json, "question");
+                cJSON *c_ans_idx = cJSON_GetObjectItemCaseSensitive(message_json, "correct_answer_idx");
+                cJSON *ans = cJSON_GetObjectItemCaseSensitive(message_json, "answers");
+
+                strcpy(question, q->valuestring);
+                correct_answer_idx = c_ans_idx->valueint;
+
+                for (int i = 0; i < cJSON_GetArraySize(ans); i++)
+                {
+                    cJSON *n = cJSON_GetArrayItem(ans, i);
+                    strcpy(answers[i], n->valuestring);
+                }
+                for (int i = cJSON_GetArraySize(ans); i < 4; i++)
+                {
+                    bzero(answers[i], 128);
+                }
             }
 
             cJSON_Delete(message_json);
@@ -145,6 +158,29 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "Other event id:%d", event->event_id);
         break;
     }
+}
+
+void send_answer(char *player_id, bool right_wrong, unsigned time)
+{
+    if (!is_inited)
+    {
+        ESP_LOGW(TAG, "MQTT NOT INITED!!!");
+        return;
+    }
+    cJSON *ans = cJSON_CreateObject();
+    cJSON *type = cJSON_CreateNumber(1);
+    cJSON *correct = cJSON_CreateBool(right_wrong);
+    cJSON *player_id = cJSON_CreateString(player_id);
+
+    cJSON_AddItemToObject(ans, "type", type);
+    cJSON_AddItemToObject(ans, "player_id", player_id);
+    cJSON_AddItemToObject(ans, "correct", correct);
+
+    cJSON_PrintPreallocated(pos, json_buf, JSON_BUFSIZE, false);
+    int pub_ret = esp_mqtt_client_publish(glb_client, game_topic, json_buf, 0, 1, 0);
+    //ESP_LOGI(TAG, "Publishing of =%s returned=%d", out, pub_ret);
+
+    cJSON_Delete(pos);
 }
 
 void qq_mqtt_client_init(int game_id)
