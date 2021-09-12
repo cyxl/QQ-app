@@ -61,6 +61,7 @@ char current_question[256];
 
 static bool q_action_states[4][NUM_ACTIONS] = {false}; //Update will data from model inference
 static int state_check_idx[4] = {0};
+static const char *qq_client_id = CONFIG_QQ_CLIENT_ID;
 
 void draw_answer_line(lv_obj_t *canvas, int x_pos, int y_pos, char *ans, int actions[NUM_ACTIONS], bool on_off[NUM_ACTIONS], int num_actions)
 {
@@ -243,21 +244,24 @@ void quiz_tab_task(void *pvParameters)
 
     for (;;)
     {
-
+        int answer = get_answer(q_action_states);
         int inf = -1;
         if (inferring == true)
         {
-            get_latest_inf(4);
+            get_latest_inf(5);
         }
         printf("inf : %d\n", inf);
 
+        xSemaphoreTake(qqMqttSemaphore,portMAX_DELAY);
         if (strcmp(current_question, question) != 0)
         {
             inferring = true;
             strcpy(current_question, question);
             clear();
+            if (answer == -1)send_answer(qq_client_id, false, time(NULL));
             shuffle_actions(actions, q_actions);
         }
+        xSemaphoreGive(qqMqttSemaphore);
 
         for (int i = 0; i < 4; i++)
         {
@@ -268,9 +272,7 @@ void quiz_tab_task(void *pvParameters)
                 state_check_idx[i] = state_check_idx[i] + 1;
             }
         }
-
-        int answer = get_answer(q_action_states);
-
+        
         if (answer == correct_answer_idx)
         {
 
@@ -284,7 +286,7 @@ void quiz_tab_task(void *pvParameters)
             lv_obj_align(mbox1, NULL, LV_ALIGN_CENTER, 0, 0); /*Align to the corner*/
             xSemaphoreGive(xGuiSemaphore);
             clear();
-            send_answer()
+            send_answer(qq_client_id, true, time(NULL));
             inferring = false;
         }
         else if (answer >= 0)
@@ -299,6 +301,7 @@ void quiz_tab_task(void *pvParameters)
             lv_obj_align(mbox1, NULL, LV_ALIGN_CENTER, 0, 0); /*Align to the corner*/
             xSemaphoreGive(xGuiSemaphore);
             clear();
+            send_answer(qq_client_id, false, time(NULL));
             inferring = false;
         }
 

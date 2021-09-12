@@ -131,6 +131,12 @@ CONFIG_ESP_WIFI_PASSWORD="B00BF00D77"
 # end of WiFi Configuration
 
 #
+# QQ MQTT Config
+#
+CONFIG_QQ_CLIENT_ID="qq0"
+# end of QQ MQTT Config
+
+#
 # Compiler options
 #
 CONFIG_COMPILER_OPTIMIZATION_DEFAULT=y

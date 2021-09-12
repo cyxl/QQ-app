@@ -42,7 +42,6 @@ static esp_mqtt_client_handle_t glb_client;
 static bool is_inited = false;
 static const char *json_buf = NULL;
 static char game_topic[64];
-static char qq_client_id[CLIENT_ID_LEN + 1];
 #define LEADER_MSG_TYPE 2
 #define QUESTION_MSG_TYPE 3
 #define QUESTION_RESPONSE_MSG_TYPE 1
@@ -51,9 +50,12 @@ int correct_answer_idx = -2;
 char answers[4][128];
 char current_leaders[LEADER_COUNT][32];
 int current_leader_scores[LEADER_COUNT];
+static const char *qq_client_id = CONFIG_QQ_CLIENT_ID;
 
+SemaphoreHandle_t qqMqttSemaphore;
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
+    xSemaphoreTake(qqMqttSemaphore, portMAX_DELAY);
     ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%d", base, event_id);
     esp_mqtt_event_handle_t event = event_data;
     esp_mqtt_client_handle_t client = event->client;
@@ -84,7 +86,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         //printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         //printf("DATA=%.*s\r\n", event->data_len, event->data);
 
+        event->data[event->data_len] = '\0';
         cJSON *message_json = cJSON_Parse(event->data);
+        printf ("e data %s\n",event->data);
+        printf("json %s\n",cJSON_Print(message_json));
         if (message_json == NULL)
         {
             fprintf(stderr, "Error with json");
@@ -96,8 +101,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         }
         else
         {
-            cJSON *type = cJSON_GetObjectItemCaseSensitive(message_json, "type");
-            if (type->valueint == 2)
+            cJSON *msgtype = cJSON_GetObjectItemCaseSensitive(message_json, "msgtype");
+            if (msgtype->valueint == 2)
             {
                 cJSON *leaders = cJSON_GetObjectItemCaseSensitive(message_json, "leaders");
                 for (int i = 0; i < cJSON_GetArraySize(leaders) && i < LEADER_COUNT; i++)
@@ -109,16 +114,17 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                     current_leader_scores[i] = count->valueint;
                 }
             }
-            else if (type->valueint == 1)
+            else if (msgtype->valueint == 3)
             {
-                cJSON *cat = cJSON_GetObjectItemCaseSensitive(message_json, "category");
-                cJSON *type = cJSON_GetObjectItemCaseSensitive(message_json, "type");
-                cJSON *dif = cJSON_GetObjectItemCaseSensitive(message_json, "difficulty");
-                cJSON *q = cJSON_GetObjectItemCaseSensitive(message_json, "question");
+                //cJSON *cat = cJSON_GetObjectItemCaseSensitive(message_json, "category");
+                //cJSON *type = cJSON_GetObjectItemCaseSensitive(message_json, "type");
+                // cJSON *dif = cJSON_GetObjectItemCaseSensitive(message_json, "difficulty");
+                cJSON *msg_q = cJSON_GetObjectItemCaseSensitive(message_json, "question");
                 cJSON *c_ans_idx = cJSON_GetObjectItemCaseSensitive(message_json, "correct_answer_idx");
                 cJSON *ans = cJSON_GetObjectItemCaseSensitive(message_json, "answers");
 
-                strcpy(question, q->valuestring);
+                //                printf("got string %s\n",msg_q->valuestring);
+                //strcpy(question, msg_q->valuestring);
                 correct_answer_idx = c_ans_idx->valueint;
 
                 for (int i = 0; i < cJSON_GetArraySize(ans); i++)
@@ -131,10 +137,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                     bzero(answers[i], 128);
                 }
             }
-
-            cJSON_Delete(message_json);
         }
-
+        cJSON_Delete(message_json);
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -158,10 +162,13 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "Other event id:%d", event->event_id);
         break;
     }
+    xSemaphoreGive(qqMqttSemaphore);
 }
 
 void send_answer(char *player_id, bool right_wrong, unsigned time)
 {
+    printf("sending answer\n");
+
     if (!is_inited)
     {
         ESP_LOGW(TAG, "MQTT NOT INITED!!!");
@@ -170,34 +177,29 @@ void send_answer(char *player_id, bool right_wrong, unsigned time)
     cJSON *ans = cJSON_CreateObject();
     cJSON *type = cJSON_CreateNumber(1);
     cJSON *correct = cJSON_CreateBool(right_wrong);
-    cJSON *player_id = cJSON_CreateString(player_id);
+    cJSON *client_player_id = cJSON_CreateString(player_id);
 
-    cJSON_AddItemToObject(ans, "type", type);
-    cJSON_AddItemToObject(ans, "player_id", player_id);
+    cJSON_AddItemToObject(ans, "msgtype", type);
+    cJSON_AddItemToObject(ans, "player_id", client_player_id);
     cJSON_AddItemToObject(ans, "correct", correct);
 
-    cJSON_PrintPreallocated(pos, json_buf, JSON_BUFSIZE, false);
+    cJSON_PrintPreallocated(ans, json_buf, JSON_BUFSIZE, false);
     int pub_ret = esp_mqtt_client_publish(glb_client, game_topic, json_buf, 0, 1, 0);
     //ESP_LOGI(TAG, "Publishing of =%s returned=%d", out, pub_ret);
 
-    cJSON_Delete(pos);
+    cJSON_Delete(ans);
 }
 
 void qq_mqtt_client_init(int game_id)
 {
+    qqMqttSemaphore = xSemaphoreCreateMutex();
+
     ESP_LOGI(TAG, "init");
     //TODO use defines
     bzero(question, 256);
     bzero(answers, 4 * 128);
 
     sprintf(game_topic, "qq/game/%d", 0);
-    ATCA_STATUS ret = Atecc608_GetSerialString(qq_client_id);
-
-    if (ret != ATCA_SUCCESS)
-    {
-        printf("Failed to get device serial from secure element. Error: %i", ret);
-        abort();
-    }
 
     ESP_LOGI(TAG, "Client ID:%s", qq_client_id);
     json_buf = malloc(JSON_BUFSIZE);
