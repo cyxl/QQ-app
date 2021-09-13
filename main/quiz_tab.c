@@ -286,7 +286,7 @@ void quiz_tab_task(void *pvParameters)
         if (inferring == true)
         {
             //inf = get_latest_inf(2,.6);
-            inf = get_max_from_confs(4, .8);
+            inf = get_max_from_confs(3, .85);
         }
         printf("inf : %d\n", inf);
 
