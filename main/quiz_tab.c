@@ -248,7 +248,7 @@ void quiz_tab_task(void *pvParameters)
         int inf = -1;
         if (inferring == true)
         {
-            inf = get_latest_inf(5);
+            inf = get_latest_inf(3);
         }
         printf("inf : %d\n", inf);
 
