@@ -61,10 +61,14 @@ char current_question[256];
 
 static bool q_action_states[4][NUM_ACTIONS] = {false}; //Update will data from model inference
 static int state_check_idx[4] = {0};
+static lv_color_t ans_colors[4] = {LV_COLOR_BLACK};
 static const char *qq_client_id = CONFIG_QQ_CLIENT_ID;
 
-void draw_answer_line(lv_obj_t *canvas, int x_pos, int y_pos, char *ans, int actions[NUM_ACTIONS], bool on_off[NUM_ACTIONS], int num_actions)
+static int steps = 0;
+
+void draw_answer_line(lv_obj_t *canvas, int x_pos, int y_pos, char *ans, int actions[NUM_ACTIONS], bool on_off[NUM_ACTIONS], int num_actions, lv_color_t text_color)
 {
+    label_desc.color = text_color;
     lv_canvas_draw_text(canvas, x_pos, y_pos, 300, &label_desc, ans, LV_LABEL_ALIGN_LEFT);
     static lv_point_t t[2];
 
@@ -135,20 +139,20 @@ void draw_answer_line(lv_obj_t *canvas, int x_pos, int y_pos, char *ans, int act
 
 void rebuild_quiz_canvas(lv_obj_t *canvas,
                          char *question,
-                         char *ans1,
-                         char *ans2,
-                         char *ans3,
-                         char *ans4,
-                         int actions[4][NUM_ACTIONS], bool on_off[4][NUM_ACTIONS], int num_actions)
+                         char ans[4][128],
+                         lv_color_t ans_colors[4],
+                         int actions[4][NUM_ACTIONS],
+                         bool on_off[4][NUM_ACTIONS],
+                         int num_actions)
 {
     xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
     lv_obj_clean(canvas);
     lv_canvas_fill_bg(canvas, LV_COLOR_WHITE, LV_OPA_COVER);
     lv_canvas_draw_text(canvas, 1, 1, QUIZ_PLOT_WIDTH, &label_desc, question, LV_LABEL_ALIGN_LEFT);
-    draw_answer_line(canvas, 2, 45, ans1, actions[0], on_off[0], num_actions);
-    draw_answer_line(canvas, 2, 80, ans2, actions[1], on_off[1], num_actions);
-    draw_answer_line(canvas, 2, 115, ans3, actions[2], on_off[2], num_actions);
-    draw_answer_line(canvas, 2, 150, ans4, actions[3], on_off[3], num_actions);
+    draw_answer_line(canvas, 2, 45, ans[0], actions[0], on_off[0], num_actions, ans_colors[0]);
+    draw_answer_line(canvas, 2, 80, ans[1], actions[1], on_off[1], num_actions, ans_colors[1]);
+    draw_answer_line(canvas, 2, 115, ans[2], actions[2], on_off[2], num_actions, ans_colors[2]);
+    draw_answer_line(canvas, 2, 150, ans[3], actions[3], on_off[3], num_actions, ans_colors[3]);
 
     xSemaphoreGive(xGuiSemaphore);
 }
@@ -195,9 +199,14 @@ void display_quiz_tab(lv_obj_t *tv)
 
 void clear()
 {
+    steps = 0;
     //TODO wrap in semaphore
     bzero(q_action_states, 4 * NUM_ACTIONS * sizeof(bool));
     bzero(state_check_idx, 4 * sizeof(int));
+    ans_colors[0] = LV_COLOR_BLACK;
+    ans_colors[1] = LV_COLOR_BLACK;
+    ans_colors[2] = LV_COLOR_BLACK;
+    ans_colors[3] = LV_COLOR_BLACK;
 }
 
 int get_answer(bool states[4][NUM_ACTIONS])
@@ -228,6 +237,32 @@ void shuffle_actions(int all_actions[6], int actions[4][NUM_ACTIONS])
     }
 }
 
+char *get_action_string(int inf)
+{
+    switch (inf)
+    {
+    case REST_LABEL:
+        return "rest";
+    case FORWARD_LABEL:
+        return "forward";
+    case BACKWARD_LABEL:
+        return "backward";
+    case LEFT_LABEL:
+        return "left turn";
+    case RIGHT_LABEL:
+        return "right turn";
+    case UP_LABEL:
+        return "jump";
+    case DOWN_LABEL:
+        return "squat";
+    case LEFTSIDE_LABEL:
+        return "left slide";
+    case RIGHTSIDE_LABEL:
+        return "right slide";
+    default:
+        return "????";
+    };
+}
 void quiz_tab_task(void *pvParameters)
 {
     srand(time(NULL));
@@ -237,6 +272,7 @@ void quiz_tab_task(void *pvParameters)
     lv_obj_t *leader_lbl = (lv_obj_t *)quiz_parms[1];
     lv_obj_t *bottom_lbl = (lv_obj_t *)quiz_parms[2];
 
+    long start_t = xTaskGetTickCount();
     bool inferring = true;
 
     int q_actions[4][NUM_ACTIONS] = {0}; //Randomly generate using rand()
@@ -248,16 +284,20 @@ void quiz_tab_task(void *pvParameters)
         int inf = -1;
         if (inferring == true)
         {
-            inf = get_latest_inf(3);
+            //inf = get_latest_inf(2,.6);
+            inf = get_max_from_confs(4, .8);
         }
         printf("inf : %d\n", inf);
+
+        if (inf >0 && inf != UNCERTAIN_LABEL) steps += 1;
 
         if (strcmp(current_question, question) != 0)
         {
             inferring = true;
             strcpy(current_question, question);
             clear();
-            if (answer == -1)send_answer(qq_client_id, false, time(NULL));
+            if (answer == -1)
+                send_answer(qq_client_id, false, time(NULL));
             shuffle_actions(actions, q_actions);
         }
 
@@ -270,7 +310,7 @@ void quiz_tab_task(void *pvParameters)
                 state_check_idx[i] = state_check_idx[i] + 1;
             }
         }
-        
+
         if (answer == correct_answer_idx)
         {
 
@@ -286,6 +326,14 @@ void quiz_tab_task(void *pvParameters)
             clear();
             send_answer(qq_client_id, true, time(NULL));
             inferring = false;
+            ans_colors[answer] = LV_COLOR_GREEN;
+            rebuild_quiz_canvas(canvas,
+                                question,
+                                answers,
+                                ans_colors,
+                                q_actions,
+                                q_action_states,
+                                NUM_ACTIONS);
         }
         else if (answer >= 0)
         {
@@ -301,19 +349,25 @@ void quiz_tab_task(void *pvParameters)
             clear();
             send_answer(qq_client_id, false, time(NULL));
             inferring = false;
+            ans_colors[answer] = LV_COLOR_RED;
+            rebuild_quiz_canvas(canvas,
+                                question,
+                                answers,
+                                ans_colors,
+                                q_actions,
+                                q_action_states,
+                                NUM_ACTIONS);
         }
 
         rebuild_quiz_canvas(canvas,
                             question,
-                            answers[0],
-                            answers[1],
-                            answers[2],
-                            answers[3],
+                            answers,
+                            ans_colors,
                             q_actions,
                             q_action_states,
                             NUM_ACTIONS);
         xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
-        lv_label_set_text_fmt(bottom_lbl, "#0000ff Client Acc: %d Steps: 100 Players: 1 Time: 10#", inf);
+        lv_label_set_text_fmt(bottom_lbl, "#0000ff Action: %s Steps: %d Time: %d secs#", get_action_string(inf), steps, (int)((xTaskGetTickCount() - start_t)/100));
         lv_label_set_text_fmt(leader_lbl, "#0000ff Leader Board: %s:%d %s:%d %s:%d %s:%d %s:%d#",
                               current_leaders[0], current_leader_scores[0],
                               current_leaders[1], current_leader_scores[1],
@@ -321,7 +375,7 @@ void quiz_tab_task(void *pvParameters)
                               current_leaders[3], current_leader_scores[3],
                               current_leaders[4], current_leader_scores[4]);
         xSemaphoreGive(xGuiSemaphore);
-        vTaskDelay(pdMS_TO_TICKS(300));
+        vTaskDelay(pdMS_TO_TICKS(400));
     }
     vTaskDelete(NULL); // Should never get to here...
 }

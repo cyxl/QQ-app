@@ -40,7 +40,7 @@ extern const uint32_t qq_public_pem_length;
 static esp_mqtt_client_handle_t glb_client;
 
 static bool is_inited = false;
-static const char *json_buf = NULL;
+static char *json_buf = NULL;
 static char game_topic[64];
 #define LEADER_MSG_TYPE 2
 #define QUESTION_MSG_TYPE 3
@@ -82,13 +82,9 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     case MQTT_EVENT_DATA:
         ESP_LOGD(TAG, "MQTT_EVENT_DATA");
         //printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
-        //printf("DATA=%.*s\r\n", event->data_len, event->data);
+        printf("DATA=%.*s\r\n", event->data_len, event->data);
 
-        event->data[event->data_len] = '\0';
-        printf("data size %d", event->data_len);
         cJSON *message_json = cJSON_Parse(event->data);
-        printf("e data %s\n", event->data);
-        printf("json %s\n", cJSON_Print(message_json));
         if (message_json == NULL)
         {
             fprintf(stderr, "Error with json");
@@ -163,7 +159,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     }
 }
 
-void send_answer(char *player_id, bool right_wrong, unsigned time)
+void send_answer(const char *player_id, bool right_wrong, unsigned time)
 {
     printf("sending answer\n");
 
@@ -182,7 +178,7 @@ void send_answer(char *player_id, bool right_wrong, unsigned time)
     cJSON_AddItemToObject(ans, "correct", correct);
 
     cJSON_PrintPreallocated(ans, json_buf, JSON_BUFSIZE, false);
-    int pub_ret = esp_mqtt_client_publish(glb_client, game_topic, json_buf, 0, 1, 0);
+    esp_mqtt_client_publish(glb_client, game_topic, json_buf, 0, 1, 0);
     //ESP_LOGI(TAG, "Publishing of =%s returned=%d", out, pub_ret);
 
     cJSON_Delete(ans);

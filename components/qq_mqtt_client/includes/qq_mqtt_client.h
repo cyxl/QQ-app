@@ -7,7 +7,7 @@
 TaskHandle_t MotMqttClientHandle;
 
 void qq_mqtt_client_init(int game_id);
-void send_answer(char *player_id, bool right_wrong, unsigned time);
+void send_answer(const char *player_id, bool right_wrong, unsigned time);
 
 #define LEADER_COUNT 5
 
