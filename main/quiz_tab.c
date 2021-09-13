@@ -273,6 +273,7 @@ void quiz_tab_task(void *pvParameters)
     lv_obj_t *bottom_lbl = (lv_obj_t *)quiz_parms[2];
 
     long start_t = xTaskGetTickCount();
+    long question_exp = 3000 + start_t;
     bool inferring = true;
 
     int q_actions[4][NUM_ACTIONS] = {0}; //Randomly generate using rand()
@@ -294,6 +295,7 @@ void quiz_tab_task(void *pvParameters)
         if (strcmp(current_question, question) != 0)
         {
             inferring = true;
+            question_exp = xTaskGetTickCount() + 3000;
             strcpy(current_question, question);
             clear();
             if (answer == -1)
@@ -350,6 +352,7 @@ void quiz_tab_task(void *pvParameters)
             send_answer(qq_client_id, false, time(NULL));
             inferring = false;
             ans_colors[answer] = LV_COLOR_RED;
+            ans_colors[correct_answer_idx] = LV_COLOR_GREEN;
             rebuild_quiz_canvas(canvas,
                                 question,
                                 answers,
@@ -367,7 +370,7 @@ void quiz_tab_task(void *pvParameters)
                             q_action_states,
                             NUM_ACTIONS);
         xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
-        lv_label_set_text_fmt(bottom_lbl, "#0000ff Action: %s Steps: %d Time: %d secs#", get_action_string(inf), steps, (int)((xTaskGetTickCount() - start_t)/100));
+        lv_label_set_text_fmt(bottom_lbl, "#0000ff Action: %s Steps: %d Total Time: %d secs Remaining Time: %d#", get_action_string(inf), steps, (int)((xTaskGetTickCount() - start_t)/100),(int)((question_exp - xTaskGetTickCount())/100));
         lv_label_set_text_fmt(leader_lbl, "#0000ff Leader Board: %s:%d %s:%d %s:%d %s:%d %s:%d#",
                               current_leaders[0], current_leader_scores[0],
                               current_leaders[1], current_leader_scores[1],
