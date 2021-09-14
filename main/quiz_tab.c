@@ -285,8 +285,8 @@ void quiz_tab_task(void *pvParameters)
         int inf = -1;
         if (inferring == true)
         {
-            //inf = get_latest_inf(2,.6);
-            inf = get_max_from_confs(3, .85);
+            inf = get_latest_inf(3,.70);
+            //inf = get_max_from_confs(3, .85);
         }
         printf("inf : %d\n", inf);
 
@@ -378,7 +378,7 @@ void quiz_tab_task(void *pvParameters)
                               current_leaders[3], current_leader_scores[3],
                               current_leaders[4], current_leader_scores[4]);
         xSemaphoreGive(xGuiSemaphore);
-        vTaskDelay(pdMS_TO_TICKS(400));
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
     vTaskDelete(NULL); // Should never get to here...
 }
