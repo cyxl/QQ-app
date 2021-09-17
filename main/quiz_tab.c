@@ -374,9 +374,9 @@ void quiz_tab_task(void *pvParameters)
         int t_remaining = (question_exp - xTaskGetTickCount()) / 100;
         if (t_remaining > 30) t_remaining = 0; //to account for clock differences between device and question service (hack)
         xSemaphoreTake(xGuiSemaphore, portMAX_DELAY);
-        char* time_c = "#0000ff";
+        char* time_c = "#006633";
         if (t_remaining < 10) time_c = "#ff0000";
-        lv_label_set_text_fmt(bottom_lbl, "#0000ff Action: %s Steps: %d Total Time: %d secs # %s Remaining Time: %d #", 
+        lv_label_set_text_fmt(bottom_lbl, "#0000ff Action: # #006633 %s # #0000ff Steps: # #006633 %d # #0000ff Total Time: # #006633 %d # #0000ff secs Remaining Time: # %s %d #", 
             get_action_string(inf), 
             steps, 
             (int)((xTaskGetTickCount() - start_t)/100),
