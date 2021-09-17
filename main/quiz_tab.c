@@ -203,7 +203,6 @@ void display_quiz_tab(lv_obj_t *tv)
 
 void clear()
 {
-    steps = 0;
     //TODO wrap in semaphore
     bzero(q_action_states, 4 * NUM_ACTION_STATES * sizeof(bool));
     bzero(state_check_idx, 4 * sizeof(int));
