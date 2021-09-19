@@ -88,6 +88,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
         event->data[event->data_len] = '\0';
         cJSON *message_json = cJSON_Parse(event->data);
+        
         printf ("e data %s\n",event->data);
         printf("json %s\n",cJSON_Print(message_json));
         if (message_json == NULL)
@@ -123,6 +124,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                 cJSON *c_ans_idx = cJSON_GetObjectItemCaseSensitive(message_json, "correct_answer_idx");
                 cJSON *ans = cJSON_GetObjectItemCaseSensitive(message_json, "answers");
 
+                if (msg_q == NULL)
+                {
+                    printf("question is null\n");
+                }
                 //                printf("got string %s\n",msg_q->valuestring);
                 //strcpy(question, msg_q->valuestring);
                 correct_answer_idx = c_ans_idx->valueint;
