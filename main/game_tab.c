@@ -37,13 +37,13 @@ void display_game_tab(lv_obj_t *tv)
     lv_table_set_row_cnt(table, 3);
     lv_obj_align(table, NULL, LV_ALIGN_CENTER, 0, 0);
 
-    lv_table_set_cell_value(table, 0, 0, "Highscore");
-    lv_table_set_cell_value(table, 1, 0, "Level");
+    lv_table_set_cell_value(table, 0, 0, "High Score");
+    lv_table_set_cell_value(table, 1, 0, "Room");
     lv_table_set_cell_value(table, 2, 0, "Name");
 
-    lv_table_set_cell_value_fmt(table, 0, 1, "Start");
-    lv_table_set_cell_value_fmt(table, 1, 1, "2");
-    lv_table_set_cell_value_fmt(table, 2, 1, "cyxl");
+    lv_table_set_cell_value_fmt(table, 0, 1, "--");
+    lv_table_set_cell_value_fmt(table, 1, 1, "0");
+    lv_table_set_cell_value_fmt(table, 2, 1, CONFIG_QQ_CLIENT_ID);
 
     xSemaphoreGive(xGuiSemaphore);
 }
