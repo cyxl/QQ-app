@@ -34,5 +34,4 @@ Give a ⭐️ if this project helped you!
 Copyright © 2021 [cyxl](https://github.com/cyxl).<br />
 This project is [GNU](https://github.com/cyxl/QQ-app/blob/main/LICENSE) licensed.
 
-***
-_This README was generated with ❤️ by [readme-md-generator](https://github.com/kefranabg/readme-md-generator)_
+
