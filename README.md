@@ -24,7 +24,7 @@ Make sure you have [Visual Studio Code](https://code.visualstudio.com/download) 
 
 [Generate](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/kconfig.html) an sdkconfig
 
-Clone the repo's:
+Clone the Repositories:
 ```sh
 git clone https://github.com/stantonious/mot-model
 git clone https://github.com/stantonious/mot-components
