@@ -53,6 +53,8 @@ Request (or generate) QQ certificates for AWS IoT connectivity and copy to:
 
 Build and flash your device
 
+## Schematics
+![Schematic](https://github.com/cyxl/QQ-app/blob/main/qq-arch_UUczrIFVIy.png)
 
 ## Author
 
