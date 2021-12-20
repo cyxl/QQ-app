@@ -11,7 +11,7 @@
 
 > Application code for the hackster.io Reinventing Healthy Space contest
 
-### 🏠 [Homepage](hackster.io/cyxl/quiz-quest-b016cf)
+### 🏠 [Homepage](https://hackster.io/cyxl/quiz-quest-b016cf)
 
 ### ✨ [Demo](https://www.youtube.com/watch?v=GHmoBTd4A5o)
 
