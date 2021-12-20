@@ -15,6 +15,45 @@
 
 ### ✨ [Demo](https://www.youtube.com/watch?v=GHmoBTd4A5o)
 
+## 🚀 Usage
+
+The application consists of a set of c++ and c code in a platformio project. 
+Steps to recreate the application are as follows:
+
+Make sure you have [Visual Studio Code](https://code.visualstudio.com/download) and [Platformio](https://platformio.org/install) installed.
+
+[Generate](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/kconfig.html) an sdkconfig
+
+Clone the repo's:
+```sh
+git clone https://github.com/stantonious/mot-model
+git clone https://github.com/stantonious/mot-components
+git clone https://github.com/cyxl/QQ-app
+```
+
+Open Visual Code at the root of the QQ-app repository.
+```sh
+code QQ-app/
+```
+
+Update the sdkconfig using menuconfig
+```sh
+pio run -t menuconfig
+# Update the following to be unique
+QQ MQTT Config -> QQ Client ID 
+# Update the following with your WiFi Config
+WiFi Configuration -> SSID
+WiFi Configuration -> WiFi Password
+```
+
+Request (or generate) QQ certificates for AWS IoT connectivity and copy to:
+```sh
+.../QQ-app/certs
+```
+
+Build and flash your device
+
+
 ## Author
 
 👤 **cyxl**
