@@ -62,6 +62,10 @@ Build and flash your device
 
 * Github: [@cyxl](https://github.com/cyxl)
 
+👤 **stantonious**
+
+*  Github: [@stantonious](https://github.com/stantonious)
+
 ## 🤝 Contributing
 
 Contributions, issues and feature requests are welcome!<br />Feel free to check [issues page](https://github.com/cyxl/QQ-app/issues). 
